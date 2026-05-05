@@ -11,7 +11,7 @@ y se entienda por qué cada pieza está donde está.
 ┌─────────── Vistas ───────────┐         ┌──── Controladores ───┐
 │ TerminalView                 │◀──┐  ┌─▶│ AppController        │
 │ DashboardView                │   │  │  │ CommandController    │
-└──────────────────────────────┘   │  │  └──────────┬───────────┘
+│ LobbyView / MatchHudView     │   │  │  └──────────┬───────────┘
 └──────────────────────────────┘   │  │             │
               ▲                    │  │             ▼
               │                    │  │   ┌──── Modelos ────┐
@@ -21,10 +21,19 @@ y se entienda por qué cada pieza está donde está.
               │                           │ FileSystemModel │
               │                           └────────┬────────┘
               │                                    │
-              │                   ┌────── Servicios ───────┐
-              └───────────────────│ StorageService         │
-                                  │ AIAgentService (stub)  │
-                                  └────────────────────────┘
+              │                   ┌────── Servicios ──────────┐
+              └───────────────────│ StorageService            │
+                                  │ AIAgentService            │
+                                  │ AudioService              │
+                                  │ LobbyService (cliente WS) │──┐
+                                  └───────────────────────────┘  │
+                                                                 ▼
+                                       ┌─── server/ (Node, fork) ──────┐
+                                       │ gameServer.ts (WebSocket)     │
+                                       │ modes/{base,redVsBlue,        │
+                                       │        capture,coop,ffa}.ts   │
+                                       │ protocol.ts ← contrato TS     │
+                                       └───────────────────────────────┘
 ```
 
 ### Reglas de oro
@@ -35,6 +44,11 @@ y se entienda por qué cada pieza está donde está.
 3. **Los controladores orquestan**: leen modelos, ejecutan comandos y emiten
    eventos.
 4. **Los servicios** son piezas reutilizables sin estado de dominio.
+5. **El game server (`server/`)** vive en un proceso Node aparte
+   (forkeado por Electron en `electron/main.js`). Habla WebSocket con
+   `LobbyService`. Comparte `protocol.ts` con el renderer (`import type`)
+   para que cualquier cambio en el contrato rompa en compile-time en
+   ambos lados.
 
 ## Capas en detalle
 

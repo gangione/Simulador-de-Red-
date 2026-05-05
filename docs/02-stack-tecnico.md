@@ -4,11 +4,12 @@
 
 | Capa            | Tecnología                                 |
 |-----------------|--------------------------------------------|
-| Lenguaje        | **TypeScript 5.4** (modo `strict`)         |
+| Lenguaje        | **TypeScript 5.4** (modo `strict` en renderer y server) |
 | Bundler         | **Vite 5** + `vite-plugin-electron 0.28`   |
 | Renderer        | HTML5 + CSS3 puros (sin frameworks UI)     |
 | Runtime         | **Electron 29** (Chromium + Node)          |
-| Empaquetado     | `electron-builder 24.9` (target NSIS Windows) |
+| Game server     | **Node + `ws` 8** compilado con `tsconfig.server.json` (salida `server-dist/`) y forkeado por Electron |
+| Empaquetado     | `electron-builder 24.9` (target NSIS Windows). `extraResources` copia `server-dist/` y `node_modules/ws` |
 | Persistencia    | `sessionStorage` (vía `IStorageProvider`) + `localStorage` para guardado durable |
 | IA (Fase 2)     | Interfaz `IAIAgent` con `StubAIAgent` por defecto, listo para enchufar Ollama / OpenAI / LLM local |
 | Tests           | Planificado: Vitest (unit) + Playwright (E2E) — ver [09 · Roadmap](09-roadmap.md) |
@@ -17,13 +18,23 @@
 
 ### TypeScript estricto
 
-`tsconfig.json` activa `strict: true` (que incluye `noImplicitAny`,
-`strictNullChecks`, etc.). El proyecto compila con `tsc --noEmit` antes de
-cada build. Esto:
+El proyecto compila con `strict: true` en **dos targets independientes**:
+
+| Config                  | Qué compila                                        | Salida          |
+|-------------------------|----------------------------------------------------|-----------------|
+| `tsconfig.json`         | Renderer + `electron/` + `server/protocol.ts`      | `dist/` (Vite)  |
+| `tsconfig.server.json`  | `server/**/*.ts` (game server)                     | `server-dist/`  |
+
+El server activa además `noUncheckedIndexedAccess` y `noImplicitOverride`
+para forzar narrowing explícito y dejar los `override` evidentes en los
+modos. El renderer ejecuta `tsc --noEmit` antes de cada build. Esto:
 
 - detecta errores de tipo antes de llegar al runtime;
 - documenta los contratos entre capas a nivel de tipos;
-- facilita refactors seguros (renombrado de campos, cambio de firmas).
+- facilita refactors seguros (renombrado de campos, cambio de firmas);
+- comparte un único contrato WS (`server/protocol.ts`) entre cliente y
+  servidor vía `import type`. Cualquier cambio en el protocolo rompe en
+  compile-time en ambos lados.
 
 ### Vite + vite-plugin-electron
 

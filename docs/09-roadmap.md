@@ -45,19 +45,31 @@ const agent = new OllamaAIAgent();   // antes: new StubAIAgent()
 
 Nada más cambia. Los comandos siguen igual (Dependency Inversion).
 
-## Fase 3 — Multijugador LAN
+## Fase 3 — Multijugador LAN (✅ Completa)
 
-Objetivo: dos equipos (Red Team vs Blue Team) sobre la misma red local con
-sincronización en tiempo real.
+Objetivo: dos o más jugadores sobre la misma red local con sincronización
+en tiempo real, organizados en cuatro modos de juego.
 
-- [ ] `GameServer` WebSocket en proceso Node aparte (no en Electron).
-- [ ] Salas con roles **Red Team** vs **Blue Team** sincronizadas.
-- [ ] `NetworkBus` que envuelve al `EventBus` local y retransmite eventos
-      seleccionados al servidor (broadcast a la sala).
-- [ ] Sincronización del `NetworkModel` (host por host) y de `MissionModel`
-      por equipo.
-- [ ] Tabla de puntuaciones por equipo, lograda con eventos
-      `mission:completed` agregados.
+- [x] `GameServer` WebSocket en proceso Node aparte (forkeado por Electron).
+- [x] 4 modos: `red-vs-blue` (PvP por equipos), `capture` (toma de
+      servidores), `coop` (defensa cooperativa) y `ffa` (free-for-all).
+      Cada modo extiende `BaseMode` y se registra en `modes/index.ts`.
+- [x] **Migración completa a TypeScript estricto** del server
+      (`tsconfig.server.json`, `noUncheckedIndexedAccess`,
+      `noImplicitOverride`). Salida en `server-dist/`.
+- [x] Contrato compartido [`server/protocol.ts`](../server/protocol.ts)
+      con uniones discriminadas `ClientMsg` / `ServerMsg`. El cliente lo
+      consume con `import type` — cualquier cambio rompe en compile-time
+      en ambos lados.
+- [x] Reconexión: cuando un jugador se desconecta queda en `disconnected`
+      con un grace timer de 60 s; si vuelve antes recupera su slot. Si la
+      partida está en curso y entra alguien nuevo, se le pide elegir equipo
+      (`team-required`) y los miembros del team aprueban (`join-request`).
+- [x] Hardening: `process.on('uncaughtException'/'unhandledRejection')` +
+      *regla del timer sobreviviente* (capturar refs locales, validar
+      `rooms.has(code)`, envolver en `try/catch`). Ver AGENTS.md §2.9.
+- [x] Vistas `LobbyView` + `MatchHudView` + servicio `LobbyService` que
+      traduce el WS a eventos `lobby:*` del `EventBus`.
 
 ## Tests (planeado)
 

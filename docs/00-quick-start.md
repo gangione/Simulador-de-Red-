@@ -21,7 +21,8 @@ cd Simulador-de-Red-
 npm install
 ```
 
-### Fix conocido — binario de Electron en Windows
+<!-- Esto en mi caso no estoy seguro si me ocurrió. Se deja comentado por utilidad de troubleshooting si existe el caso. -->
+<!-- ### Fix conocido — binario de Electron en Windows
 
 A veces `npm install` no descarga automáticamente el binario nativo de
 Electron en Windows y verás un error al intentar arrancar. Si te ocurre,
@@ -29,7 +30,7 @@ ejecutá una sola vez:
 
 ```bash
 node node_modules/electron/install.js
-```
+``` -->
 
 ## 3. Scripts disponibles
 

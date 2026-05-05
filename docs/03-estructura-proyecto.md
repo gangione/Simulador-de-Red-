@@ -3,10 +3,21 @@
 ```
 Simulador-de-Red-/
 ├── electron/
-│   └── main.js                  # Proceso principal de Electron (BrowserWindow)
+│   └── main.js                  # Proceso principal de Electron (BrowserWindow + fork del game server)
+├── server/                      # Game server multijugador (Fase 3, TypeScript estricto)
+│   ├── gameServer.ts            # WebSocketServer + salas + reconexión + heartbeat
+│   ├── protocol.ts              # Contrato compartido (uniones discriminadas ClientMsg/ServerMsg)
+│   ├── words.ts                 # Wordlists para generar códigos de sala
+│   └── modes/                   # Modos de partida (Open/Closed)
+│       ├── base.ts              # BaseMode (abstract) con tickCommon, handleAction, scoring
+│       ├── index.ts             # Dispatcher (createMode + pickServers)
+│       ├── redVsBlue.ts         # Modo PvP por equipos
+│       ├── capture.ts           # Toma de servidores neutrales
+│       ├── coop.ts              # Defensa cooperativa contra oleadas
+│       └── ffa.ts               # Free-for-all
 ├── src/
 │   ├── main.ts                  # Composition root: instancia y conecta MVC
-│   ├── style.css                # Estilos del renderer (terminal + dashboard)
+│   ├── style.css                # Estilos del renderer (terminal + dashboard + lobby)
 │   ├── controllers/
 │   │   ├── AppController.ts     # Orquestador: conecta EventBus ↔ comandos ↔ modelos
 │   │   ├── CommandController.ts # Dispatcher (registro Open/Closed) de ICommand
@@ -27,7 +38,10 @@ Simulador-de-Red-/
 │   ├── services/
 │   │   ├── EventBus.ts          # Observer pub/sub + nombres canónicos de eventos
 │   │   ├── StorageService.ts    # IStorageProvider + SessionStorageProvider + persist/restore
-│   │   └── AIAgentService.ts    # IAIAgent + StubAIAgent (hook para Fase 2)
+│   │   ├── AIAgentService.ts    # IAIAgent + StubAIAgent (hook para Fase 2)
+│   │   ├── OllamaAIAgent.ts     # Implementación contra Ollama local
+│   │   ├── AudioService.ts      # Efectos sonoros opcionales
+│   │   └── LobbyService.ts      # Cliente WS → traduce protocol.ts a eventos lobby:*
 │   ├── types/
 │   │   ├── command.types.ts     # ICommand, ICommandContext, ICommandResult
 │   │   ├── mission.types.ts     # IMission, IMissionStep
@@ -37,11 +51,16 @@ Simulador-de-Red-/
 │   └── views/
 │       ├── BaseView.ts          # Clase abstracta (Template Method)
 │       ├── TerminalView.ts      # Terminal: input, output, historial, banner
-│       └── DashboardView.ts     # Panel derecho: estado, gauges CPU/RAM/LAN y misión
+│       ├── DashboardView.ts     # Panel derecho: estado, gauges CPU/RAM/LAN y misión
+│       ├── LobbyView.ts         # Sala multijugador (host/join/chat/aprobaciones)
+│       ├── MatchHudView.ts      # HUD durante partida (timer, scores, eventos)
+│       └── SettingsView.ts      # Preferencias
+├── server-dist/                  # ⚠️ Generado por `tsc -p tsconfig.server.json` (no se commitea)
 ├── docs/                        # Esta documentación
 ├── index.html                   # Markup base del renderer
-├── package.json                 # Dependencies + scripts npm
-├── tsconfig.json                # TypeScript strict mode
+├── package.json                 # Dependencies + scripts npm (build:server incluido)
+├── tsconfig.json                # TS strict (renderer + electron + server/protocol.ts)
+├── tsconfig.server.json         # TS strict del game server (NodeNext + override + indexed access)
 ├── vite.config.ts               # Vite + plugin Electron
 ├── AGENTS.md                    # Reglas de contribución (humanas e IA)
 ├── README.md                    # Presentación del proyecto
