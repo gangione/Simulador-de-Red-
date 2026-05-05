@@ -4,9 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIMULADOR DE REDES Y CIBERSEGURIDAD - EEST N°10</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+      /* Splash inline: visible desde el primer paint, sin esperar a style.css. */
+      html, body { background: #0a0e14; }
+      #boot-splash {
+        position: fixed; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 24px;
+        background: radial-gradient(ellipse at center, #11202c 0%, #0a0e14 70%);
+        color: #4af626;
+        font-family: 'Consolas', 'Courier New', monospace;
+        z-index: 9999;
+        transition: opacity 350ms ease;
+      }
+      #boot-splash.hide { opacity: 0; pointer-events: none; }
+      #boot-splash .logo {
+        font-family: 'Orbitron', 'Consolas', monospace;
+        font-size: 1.4rem; letter-spacing: 4px;
+        color: #00d4ff; text-align: center;
+      }
+      #boot-splash .sub { font-size: 0.85rem; color: #9aa3ad; letter-spacing: 1px; }
+      #boot-splash .spinner {
+        width: 48px; height: 48px;
+        border: 3px solid rgba(74, 246, 38, 0.18);
+        border-top-color: #4af626;
+        border-radius: 50%;
+        animation: bs-spin 0.9s linear infinite;
+      }
+      #boot-splash .status {
+        font-size: 0.8rem; color: #4af626; letter-spacing: 2px;
+        animation: bs-blink 1.4s ease-in-out infinite;
+      }
+      @keyframes bs-spin { to { transform: rotate(360deg); } }
+      @keyframes bs-blink { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }
+    </style>
 </head>
 <body>
+    <div id="boot-splash" role="status" aria-live="polite">
+        <div class="logo">SIMULADOR DE REDES<br>EEST N°10</div>
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="status">INICIALIZANDO ENTORNO…</div>
+        <div class="sub">Cargando 60 nodos · misiones · módulos de aprendizaje</div>
+    </div>
     <div class="main-container">
         <section class="panel-terminal">
             <header class="terminal-top">
@@ -24,6 +64,8 @@
                     <p class="line system-msg">Infraestructura detectada: 60 Nodos activos (Labs 1, 2 y 3).</p>
                     <p class="line system-msg">Escribe 'help' para ver los módulos de entrenamiento.</p>
                     <p class="line system-msg">Escribe 'misiones' para ver los escenarios disponibles.</p>
+                    <br>
+                    <p class="line" style="color: var(--matrix-green);">&gt;&gt; Entorno de Simulación EEST N°10 Operativo. 60 nodos detectados.</p>
                     <br>
                 </div>
             </div>
@@ -52,20 +94,7 @@
                 <p class="timer-display" id="active-time">TIEMPO ACTIVO: 00:00:00</p>
             </div>
 
-            <div class="widget mission-widget">
-                <h3 id="mission-title">GUÍA DE APRENDIZAJE (TUTORIALES)</h3>
-                <div class="mission-content">
-                    <p id="mission-desc">Aprende las herramientas ofensivas y defensivas.</p>
-                    <ul class="mission-list" id="mission-list-ui">
-                        <li id="m_red">Módulo Redes <span class="m-status">[PENDIENTE]</span></li>
-                        <li id="m_dos">Módulo DOS <span class="m-status">[PENDIENTE]</span></li>
-                        <li id="m_fw">Módulo Defensa (Blue Team) <span class="m-status">[PENDIENTE]</span></li>
-                        <li id="m_atk">Módulo Ataque (Red Team) <span class="m-status">[PENDIENTE]</span></li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="widget">
+            <div class="widget system-perf-widget">
                 <h3>RENDIMIENTO SISTEMA LOCAL</h3>
                 <div class="gauges-container">
                     <div class="gauge-box">
@@ -80,6 +109,39 @@
                         <div class="gauge" id="gauge-red"><span>5%</span></div>
                         <label>TRÁFICO LAN</label>
                     </div>
+                </div>
+            </div>
+
+            <div class="widget mission-widget">
+                <nav class="dash-tabs" role="tablist" aria-label="Vistas del panel de misión">
+                    <button type="button" class="dash-tab" role="tab" data-tab="misiones" aria-selected="false">MISIONES</button>
+                    <button type="button" class="dash-tab" role="tab" data-tab="foco" aria-selected="false">INSTRUCCIONES </button>
+                    <button type="button" class="dash-tab is-active" role="tab" data-tab="aprendizaje" aria-selected="true">APRENDIZAJE</button>
+                </nav>
+
+                <!-- Pane: lista de misiones (activas + completadas) -->
+                <div id="dash-pane-misiones" class="dash-pane" role="tabpanel" hidden>
+                    <h3>MISIONES</h3>
+                    <p id="missions-meta" class="mission-meta">Activas: 0 · Completadas: 0</p>
+                    <ol class="missions-list" id="missions-list"></ol>
+                </div>
+
+                <!-- Pane: misión enfocada -->
+                <div id="dash-pane-foco" class="dash-pane" role="tabpanel" hidden>
+                    <h3 id="mission-title">MISIÓN EN CURSO</h3>
+                    <p id="mission-active-meta" class="mission-meta"></p>
+                    <div class="mission-content">
+                        <p id="mission-desc"></p>
+                        <ul class="mission-list" id="mission-list-ui"></ul>
+                    </div>
+                </div>
+
+                <!-- Pane: guía de aprendizaje (ruta de tutoriales + tip) -->
+                <div id="dash-pane-aprendizaje" class="dash-pane" role="tabpanel">
+                    <h3>GUÍA DE APRENDIZAJE</h3>
+                    <p class="mission-meta">Tu ruta sugerida + tip del día.</p>
+                    <ol class="tutorial-route" id="tutorial-route"></ol>
+                    <div class="tip-card" id="tip-card"></div>
                 </div>
             </div>
 
@@ -113,6 +175,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

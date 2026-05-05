@@ -1,0 +1,5 @@
+# Carpetas a ignorar: No se suben al repositorio node_modules y dist
+/node_modules
+/dist
+/dist-electron
+/release
