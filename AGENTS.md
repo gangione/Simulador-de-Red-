@@ -40,10 +40,29 @@ Este documento describe la arquitectura, las reglas de contribución y los punto
 1. **No mezcles capas.** Una vista no importa modelos. Un modelo no importa vistas. Un controlador puede importar ambas.
 2. **Persistencia solo en modelos.** Los modelos reciben un `IStorageProvider` por constructor. Está prohibido usar `sessionStorage` directamente fuera de `StorageService.ts`.
 3. **DOM solo en vistas.** Si necesitas leer/escribir el DOM, hazlo en una `BaseView` o una subclase.
-4. **TypeScript estricto.** El proyecto compila con `strict: true`. No introduzcas `any` implícitos, no apagues reglas globalmente.
+4. **TypeScript estricto en TODO el código.** El proyecto compila con `strict: true` en dos targets independientes:
+   - `tsconfig.json`         → renderer + Electron main + `server/protocol.ts`.
+   - `tsconfig.server.json`  → todo el código del game server (`server/**/*.ts` → `server-dist/`).
+   No introduzcas `any` implícitos, no apagues reglas globalmente. **Nunca
+   reintroduzcas `.mjs`** en `server/`: el código de servidor es 100% TS
+   compilado con `noUncheckedIndexedAccess` y `noImplicitOverride`.
 5. **No edites el dispatcher para agregar comandos.** Implementa `ICommand` en un archivo nuevo y regístralo en `main.ts`.
 6. **Sin frameworks UI.** El proyecto debe seguir siendo HTML/CSS puros. Cualquier dependencia nueva requiere justificación pedagógica.
 7. **Funciona offline.** No introduzcas dependencias en tiempo de ejecución de servicios online (excepto el `IAIAgent` opcional).
+8. **Contrato WS único.** Todo mensaje cliente↔server pasa por las uniones
+   discriminadas `ClientMsg` / `ServerMsg` definidas en
+   [`server/protocol.ts`](server/protocol.ts). El renderer las importa con
+   `import type`. Cualquier cambio en el protocolo se hace ahí primero.
+9. **Regla del timer sobreviviente.** Cualquier `setTimeout` / `setInterval`
+   que pueda dispararse después de que su conexión WS se cierre **debe**
+   capturar referencias locales antes de programarse y comprobar con
+   `rooms.has(targetRoom.code)` que la sala todavía existe. Nunca confiar
+   en variables de scope que `cleanup()` puede haber nullificado: ese
+   patrón causó el crash histórico `Cannot read properties of null
+   (reading 'disconnected')`. Además envolvé el cuerpo del callback en
+   `try/catch`. El servidor instala `process.on('uncaughtException')` y
+   `process.on('unhandledRejection')` como red de seguridad — loggean y
+   mantienen vivo el proceso, **no** sustituyen al guard.
 
 ### Convenciones de código
 
@@ -127,6 +146,51 @@ export class HistoryView extends BaseView {
 
 Inicialízalo en `main.ts`. Liskov garantiza que se comporta como cualquier otra vista.
 
+## 6.1 Cómo agregar un modo de partida (server)
+
+1. Creá `server/modes/miModo.ts` extendiendo `BaseMode`:
+
+   ```ts
+   import { BaseMode, type ModeOptions } from './base.js';
+   import type { Mode, TickResult } from '../protocol.js';
+
+   export class MiModoMode extends BaseMode {
+     static override readonly MODE_ID: Mode = 'mi-modo';
+     constructor(opts: ModeOptions) { super(opts); }
+     override tick(): TickResult {
+       const result: TickResult = this.tickCommon();
+       // lógica específica del modo
+       return result;
+     }
+   }
+   ```
+
+2. Registralo en el dispatcher [`server/modes/index.ts`](server/modes/index.ts)
+   agregando un `case 'mi-modo'` que devuelva `new MiModoMode(...)`.
+3. Añadí `'mi-modo'` al tipo `Mode` y al array `MODES` en
+   [`server/protocol.ts`](server/protocol.ts).
+4. `npm run build:server` debe seguir verde.
+
+El dispatcher de modos cumple Open/Closed igual que el de comandos: agregar
+un modo no requiere modificar `BaseMode` ni los modos existentes.
+
+## 6.2 Cómo agregar un mensaje al protocolo WS
+
+1. Editá [`server/protocol.ts`](server/protocol.ts):
+   - Añadí la interfaz tipada (`SMNuevo` o `CMNuevo`) con un `type` literal.
+   - Sumá esa interfaz a la unión discriminada (`ServerMsg` o `ClientMsg`).
+2. Manejá el nuevo `case 'nuevo'` en el `switch (msg.type)` correspondiente:
+   - Cliente → server: `server/gameServer.ts`.
+   - Server → cliente: `src/services/LobbyService.ts`.
+3. Si emitís un evento de bus desde el cliente, documentálo en la tabla de la
+   sección 7 antes de implementarlo.
+4. `npm run build` (renderer + server) debe pasar sin `any`.
+
+No hace falta serialize/deserialize manual: la unión discriminada se afina
+sola con el `switch`. **No uses `as any`** ni casts amplios para esquivar
+la narrowing del compilador.
+
+
 ## 7. Eventos del bus (contrato público)
 
 | Evento | Payload | Quién emite | Quién escucha |
@@ -145,6 +209,25 @@ Inicialízalo en `main.ts`. Liskov garantiza que se comporta como cualquier otra
 | `prompt:changed` | `string` | CommandController | TerminalView |
 | `task:status` | `string` | AppController | TerminalView, DashboardView |
 | `gauge:update` | `{ id, value }` | (libre) | DashboardView |
+| `lobby:state` | `RoomSnapshot` | LobbyService | LobbyView, MatchHudView |
+| `lobby:connection` | `{ status, error? }` | LobbyService | LobbyView |
+| `lobby:player-joined` | `PlayerSnapshot` | LobbyService | LobbyView |
+| `lobby:player-left` | `{ alias }` | LobbyService | LobbyView |
+| `lobby:chat` | `{ from, text, scope, team }` | LobbyService | LobbyView |
+| `lobby:match-started` | `MatchSnapshot` | LobbyService | MatchHudView |
+| `lobby:match-countdown` | `{ value: number }` (3,2,1,0) | LobbyService | LobbyView |
+| `lobby:match-tick` | `{ timeLeft, scores }` | LobbyService | MatchHudView |
+| `lobby:match-event` | `MatchEventBase` (kind discriminado) | LobbyService | MatchHudView |
+| `lobby:server-captured` | `{ ip, by, team }` | LobbyService | MatchHudView |
+| `lobby:match-ended` | `{ winner, scores, summary? }` | LobbyService | LobbyView |
+| `lobby:join-request` | `{ requestId, alias, team }` | LobbyService | LobbyView (host) |
+| `lobby:join-resolved` | `{ requestId, by, accepted }` | LobbyService | LobbyView (todos del team) |
+| `lobby:join-pending` | `{ message, team }` | LobbyService | LobbyView |
+| `lobby:rejoin-info` | `string` (mensaje) | LobbyService | LobbyView |
+| `lobby:team-required` | `{ mode, code }` | LobbyService | LobbyView |
+| `lobby:error` | `string` | LobbyService | LobbyView |
+| `toast:show` | `{ kind, message, id?, actions? }` | (libre) | ToastView |
+| `toast:dismiss` | `string` (id) | (libre) | ToastView |
 
 **Antes de inventar un evento nuevo**, comprueba si uno existente cubre tu caso.
 
@@ -161,11 +244,13 @@ Inicialízalo en `main.ts`. Liskov garantiza que se comporta como cualquier otra
 - Comando `?teoria <concepto>` plenamente funcional
 - Hints contextuales durante misiones (sugerencia del próximo comando útil)
 
-### Fase 3 — Multijugador LAN
-- `GameServer` WebSocket en Node.js (proceso aparte de Electron)
-- Salas con roles **Red Team** vs **Blue Team** sincronizadas
-- `NetworkModel` con sincronización de estado vía `EventBus` extendido
-- Tabla de puntuaciones por equipo
+### Fase 3 — Multijugador LAN (✅ Completa)
+- `GameServer` WebSocket en proceso Node aparte (forkeado por Electron).
+- 4 modos: `red-vs-blue`, `capture`, `coop`, `ffa` con motor `BaseMode`.
+- Reconexión con grace timer de 60 s + cola de aprobación de joins.
+- Migración completa a TypeScript estricto (`tsconfig.server.json`).
+- Contrato compartido `server/protocol.ts` (uniones discriminadas).
+- Hardening: `process.on('uncaughtException')` + regla del timer sobreviviente.
 
 ## 9. Tests (planeado)
 
@@ -175,9 +260,13 @@ Inicialízalo en `main.ts`. Liskov garantiza que se comporta como cualquier otra
 
 ## 10. Checklist para una PR
 
-- [ ] `npm run build` pasa (incluye `tsc --noEmit`).
-- [ ] No se mezclan capas (vista ↔ modelo).
+- [ ] `npm run build` pasa (renderer + `tsc -p tsconfig.server.json` + Vite).
+- [ ] No se mezclan capas (vista ↔ modelo, renderer ↔ server).
 - [ ] Si agregaste un comando, está en `controllers/commands/` y registrado en `main.ts`.
 - [ ] Si agregaste un evento, está documentado en la tabla de la sección 7.
+- [ ] Si agregaste un mensaje WS, está en `server/protocol.ts` y manejado en ambos lados.
+- [ ] Si agregaste un modo, está en `server/modes/` y registrado en `modes/index.ts`.
+- [ ] Cualquier `setTimeout`/`setInterval` que sobreviva a una desconexión captura referencias locales (regla 9).
 - [ ] Misiones existentes siguen funcionando (ejecuta al menos M1 y M105).
 - [ ] No hay accesos directos a `sessionStorage` fuera de `StorageService.ts`.
+- [ ] No hay `.mjs` nuevos en `server/`.
