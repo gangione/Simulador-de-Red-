@@ -85,6 +85,7 @@
             <header class="dashboard-header">
                 <h2>MONITOR DE INFRAESTRUCTURA</h2>
                 <p>RACK PRINCIPAL: LABS 1, 2 Y 3 (60 PCs)</p>
+                <button type="button" id="btn-settings" class="btn-settings" title="Ajustes (audio, IA)" aria-label="Abrir ajustes">⚙</button>
             </header>
 
             <div class="widget current-status-widget">
@@ -146,6 +147,7 @@
             </div>
 
             <button class="btn-exit" onclick="exitSimulator()">SALIR DEL SIMULADOR</button>
+            <button id="btn-multiplayer" class="btn-multiplayer" type="button">MULTIJUGADOR LAN</button>
         </aside>
     </div>
 
@@ -171,6 +173,216 @@
                 <button class="btn-resume" onclick="resumeSimulator()">VOLVER AL SIMULADOR</button>
                 <button class="btn-restart" onclick="restartSimulator()">REINICIAR EL SIMULADOR</button>
                 <button class="btn-close" onclick="closeSimulator()">CERRAR EL SIMULADOR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de Ajustes (audio + IA). Oculto por defecto. -->
+    <div id="settings-overlay" class="settings-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div id="settings-panel" class="settings-panel">
+            <header class="settings-header">
+                <h2 id="settings-title">⚙ AJUSTES</h2>
+                <button type="button" id="btn-settings-close" class="btn-settings-close" aria-label="Cerrar">×</button>
+            </header>
+            <section class="settings-section">
+                <h3>MÚSICA DE FONDO</h3>
+                <div class="settings-row">
+                    <label for="settings-track">Pista</label>
+                    <select id="settings-track"></select>
+                </div>
+                <div class="settings-row">
+                    <label for="settings-volume">Volumen</label>
+                    <input type="range" id="settings-volume" min="0" max="100" step="1" value="40">
+                    <span id="settings-volume-label" class="settings-vol-label">40%</span>
+                </div>
+                <div class="settings-row">
+                    <label for="settings-mute">Silenciar</label>
+                    <input type="checkbox" id="settings-mute">
+                </div>
+                <div class="settings-row settings-row-actions">
+                    <button type="button" id="settings-play" class="btn-settings-action">▶ REPRODUCIR</button>
+                </div>
+                <p class="settings-hint">Comandos equivalentes: <code>volumen 50</code>, <code>mute</code>, <code>play ambient</code>.</p>
+            </section>
+            <section class="settings-section">
+                <h3>AGENTE IA (?teoria)</h3>
+                <p class="settings-hint">
+                    Backend: <code>Ollama @ 127.0.0.1:11434</code> (fallback al stub si no responde).<br>
+                    Para activarlo: instalá <a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a> y ejecutá <code>ollama pull llama3.2</code>.
+                </p>
+            </section>
+        </div>
+    </div>
+
+    <!-- Audio de fondo (sin controles nativos). El src se asigna por AudioService. -->
+    <audio id="bgm" preload="auto" loop hidden></audio>
+
+    <!-- Overlay de Multijugador LAN (Fase 3). -->
+    <div id="lobby-overlay" class="lobby-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lobby-title">
+        <div class="lobby-frame">
+            <header class="lobby-header">
+                <h2 id="lobby-title">⚡ MULTIJUGADOR LAN</h2>
+                <button type="button" id="btn-lobby-close" class="btn-settings-close" aria-label="Cerrar">×</button>
+            </header>
+
+            <!-- Pantalla 1: Inicio -->
+            <section id="lobby-screen-inicio" class="lobby-screen">
+                <div class="lobby-row">
+                    <label for="lobby-alias">Tu alias</label>
+                    <input type="text" id="lobby-alias" maxlength="20" placeholder="ej: cipher42">
+                </div>
+                <div class="lobby-cols">
+                    <div class="lobby-card">
+                        <h3>CREAR PARTIDA</h3>
+                        <p class="cmd-gray">Vos sos el host. Tu PC levanta el servidor y los demás se conectan.</p>
+                        <button type="button" id="btn-lobby-host" class="btn-lobby-primary">▶ CREAR SALA</button>
+                    </div>
+                    <div class="lobby-card">
+                        <h3>UNIRSE A PARTIDA</h3>
+                        <div class="lobby-row">
+                            <label for="lobby-code">Código</label>
+                            <input type="text" id="lobby-code" placeholder="ej: rojo-cobra-42">
+                        </div>
+                        <div class="lobby-row">
+                            <label for="lobby-host">IP del host</label>
+                            <input type="text" id="lobby-host" placeholder="ej: 192.168.1.50">
+                        </div>
+                        <button type="button" id="btn-lobby-join" class="btn-lobby-primary">▶ UNIRSE</button>
+                        <div class="lobby-recent-wrap">
+                            <p class="cmd-gray">Códigos recientes:</p>
+                            <div id="lobby-recent" class="lobby-recent"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="lobby-history-wrap">
+                    <h3>HISTORIAL DE PARTIDAS</h3>
+                    <ul id="lobby-history" class="lobby-history"></ul>
+                </div>
+            </section>
+
+            <!-- Pantalla 2: Sala -->
+            <section id="lobby-screen-sala" class="lobby-screen" style="display:none">
+                <div class="lobby-room-head">
+                    <div>
+                        <span class="cmd-gray">CÓDIGO DE SALA</span>
+                        <div id="lobby-room-code" class="lobby-room-code">—</div>
+                        <button type="button" id="btn-lobby-copy" class="btn-lobby-secondary">📋 COPIAR</button>
+                    </div>
+                    <div>
+                        <span class="cmd-gray">FASE</span>
+                        <div id="lobby-room-phase" class="lobby-room-phase">LOBBY</div>
+                    </div>
+                </div>
+
+                <div class="lobby-collapsible" id="lobby-tutorial-wrap">
+                    <button type="button" id="lobby-tutorial-toggle" class="lobby-collapse-toggle" aria-expanded="true" aria-controls="lobby-mode-tutorial">
+                        <span class="caret">▾</span> Cómo se juega
+                    </button>
+                    <div id="lobby-mode-tutorial" class="mode-tutorial collapsible-body"></div>
+                </div>
+
+                <div class="lobby-cols">
+                    <div class="lobby-card">
+                        <h3>JUGADORES</h3>
+                        <ul id="lobby-players" class="lobby-players"></ul>
+                        <div class="lobby-row">
+                            <label for="lobby-team">Equipo</label>
+                            <select id="lobby-team">
+                                <option value="auto">Auto</option>
+                                <option value="red">Red Team (Atacante)</option>
+                                <option value="blue">Blue Team (Defensor)</option>
+                            </select>
+                        </div>
+                        <div class="lobby-row-actions">
+                            <button type="button" id="btn-lobby-ready" class="btn-lobby-secondary">✓ LISTO</button>
+                            <button type="button" id="btn-lobby-start" class="btn-lobby-primary">▶ INICIAR PARTIDA</button>
+                            <button type="button" id="btn-lobby-leave" class="btn-lobby-danger">SALIR</button>
+                        </div>
+                    </div>
+
+                    <div class="lobby-card" id="lobby-host-config">
+                        <h3>CONFIGURACIÓN (HOST)</h3>
+                        <div class="lobby-row">
+                            <label for="lobby-cfg-mode">Modo</label>
+                            <select id="lobby-cfg-mode">
+                                <option value="red-vs-blue">Red vs Blue (asimétrico)</option>
+                                <option value="capture">Capture the Server (simétrico)</option>
+                                <option value="coop">Co-op Defensa (oleadas)</option>
+                                <option value="ffa">Free-for-All</option>
+                            </select>
+                        </div>
+                        <div class="lobby-row">
+                            <label for="lobby-cfg-team-size">Tam. equipo (1–5)</label>
+                            <input type="number" id="lobby-cfg-team-size" min="1" max="5" value="2">
+                        </div>
+                        <div class="lobby-row">
+                            <label for="lobby-cfg-server-count">Servidores (1–5)</label>
+                            <input type="number" id="lobby-cfg-server-count" min="1" max="5" value="3">
+                        </div>
+                        <div class="lobby-row">
+                            <label for="lobby-cfg-duration">Duración</label>
+                            <select id="lobby-cfg-duration">
+                                <option value="300">5 min</option>
+                                <option value="600" selected>10 min</option>
+                                <option value="900">15 min</option>
+                                <option value="1200">20 min</option>
+                            </select>
+                        </div>
+                        <div class="lobby-row">
+                            <label for="lobby-cfg-rule-firstn">Primer equipo a 3 capturas gana</label>
+                            <input type="checkbox" id="lobby-cfg-rule-firstn">
+                        </div>
+                        <div class="lobby-row">
+                            <label for="lobby-cfg-rule-objectives">Objetivos tipo misión</label>
+                            <input type="checkbox" id="lobby-cfg-rule-objectives">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="lobby-match-hud" class="lobby-card" style="display:none">
+                    <h3>PARTIDA EN CURSO</h3>
+                    <p class="cmd-gray">El HUD detallado aparece en el panel del dashboard.</p>
+                </div>
+
+                <div class="lobby-card lobby-chat">
+                    <h3>CHAT <span id="lobby-chat-scope" class="chat-scope-label">GENERAL</span></h3>
+                    <div id="lobby-chat-log" class="lobby-chat-log"></div>
+                    <div class="lobby-row">
+                        <input type="text" id="lobby-chat-input" maxlength="200" placeholder="Escribí un mensaje y Enter">
+                        <button type="button" id="btn-lobby-chat-send" class="btn-lobby-secondary">ENVIAR</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Conteo regresivo previo a comenzar la partida (3 → 2 → 1 → ¡YA!). -->
+            <div id="lobby-countdown" class="lobby-countdown hidden" aria-live="assertive"></div>
+        </div>
+    </div>
+
+    <!-- Contenedor de toasts (notificaciones bottom-center). -->
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <!-- Modal genérico de confirmación (botón "Sí" / "No"). -->
+    <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <div class="modal-content modal-confirm">
+            <h2 id="confirm-title" class="school-title">CONFIRMAR ACCIÓN</h2>
+            <p id="confirm-message" class="modal-text-content"></p>
+            <div class="modal-buttons">
+                <button type="button" id="confirm-accept" class="btn-restart">CONFIRMAR</button>
+                <button type="button" id="confirm-cancel" class="btn-resume">CANCELAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de selección de equipo (entrar a partida en curso). -->
+    <div id="choose-team-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="choose-team-title">
+        <div class="modal-content modal-confirm">
+            <h2 id="choose-team-title" class="school-title">PARTIDA EN CURSO</h2>
+            <p id="choose-team-message" class="modal-text-content">Elegí a qué equipo querés sumarte. Si el equipo destino tiene jugadores conectados, ellos deberán aprobar tu ingreso.</p>
+            <div class="modal-buttons">
+                <button type="button" id="choose-team-red" class="btn-restart">RED TEAM</button>
+                <button type="button" id="choose-team-blue" class="btn-resume">BLUE TEAM</button>
+                <button type="button" id="choose-team-cancel" class="btn-close">CANCELAR</button>
             </div>
         </div>
     </div>
