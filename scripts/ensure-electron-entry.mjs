@@ -56,3 +56,18 @@ if (!existsSync(electronEntry)) {
   writeFileSync(electronEntry, electronMainTemplate, 'utf8');
   console.log('[ensure-electron-entry] Creado electron/main.js');
 }
+
+const preloadEntry = path.join(electronDir, 'preload.js');
+const preloadTemplate = `// Electron preload — bridge seguro entre renderer y main.
+const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('lobbyAPI', {
+  startServer: (opts) => ipcRenderer.invoke('lobby:start-server', opts ?? {}),
+  stopServer: () => ipcRenderer.invoke('lobby:stop-server'),
+  getStatus: () => ipcRenderer.invoke('lobby:status'),
+  getLanIps: () => ipcRenderer.invoke('lobby:lan-ips'),
+});
+`;
+if (!existsSync(preloadEntry)) {
+  writeFileSync(preloadEntry, preloadTemplate, 'utf8');
+  console.log('[ensure-electron-entry] Creado electron/preload.js');
+}
