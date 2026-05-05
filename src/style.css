@@ -285,7 +285,7 @@ body {
 .btn-exit { background-color: var(--warning); color: white; font-family: 'Orbitron', sans-serif; font-size: 1rem; padding: 15px; border: none; cursor: pointer; margin-top: auto; border-radius: 4px; transition: opacity 0.3s; }
 .btn-exit:hover { opacity: 0.8; box-shadow: 0 0 10px var(--warning); }
 
-.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: flex; align-items: center; justify-content: center; }
+.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; display: flex; align-items: center; justify-content: center; }
 .hidden { display: none; }
 .modal-content { background: var(--bg-dark); border: 2px solid var(--ui-blue); padding: 30px; max-width: 600px; }
 .school-title { color: var(--ui-blue); margin-bottom: 5px; text-align: center; font-family: 'Orbitron', sans-serif; font-size: 1.4rem; }
@@ -306,7 +306,332 @@ body {
 .btn-close { background: var(--warning); color: white; }
 .btn-close:hover { background: white; color: black; box-shadow: 0 0 10px var(--warning); }
 
+/* Colores específicos del modal "elegir equipo" */
+#choose-team-red   { background: var(--warning); color: white; }
+#choose-team-red:hover { background: white; color: black; box-shadow: 0 0 10px var(--warning); }
+#choose-team-blue  { background: var(--ui-blue); color: black; }
+#choose-team-blue:hover { background: white; box-shadow: 0 0 10px var(--ui-blue); }
+#choose-team-cancel { background: #8f8e8e70; color: black; }
+#choose-team-cancel:hover { background: white; box-shadow: 0 0 10px #ffaa00; }
+
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-dark); }
 ::-webkit-scrollbar-thumb { background: #444; }
+/* ===== Settings panel ===== */
+.dashboard-header { position: relative; }
+.btn-settings {
+  position: absolute; top: 0; right: 0;
+  background: transparent; color: var(--ui-blue);
+  border: 1px solid var(--ui-blue); border-radius: 4px;
+  width: 28px; height: 28px; padding: 0;
+  font-size: 1rem; cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-settings:hover { background: var(--ui-blue); color: black; box-shadow: 0 0 8px var(--ui-blue); }
+
+.settings-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+}
+.settings-overlay.hidden { display: none; }
+.settings-panel {
+  background: var(--bg-dark);
+  border: 2px solid var(--ui-blue);
+  border-radius: 6px;
+  width: min(520px, 92vw); max-height: 86vh;
+  padding: 22px 26px;
+  box-shadow: 0 0 30px rgba(0,212,255,0.25);
+  overflow-y: auto;
+  font-family: 'Consolas', monospace;
+  color: #ddd;
+}
+.settings-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--ui-blue); padding-bottom: 8px; margin-bottom: 14px; }
+.settings-header h2 { font-family: 'Orbitron', sans-serif; color: var(--ui-blue); font-size: 1.05rem; letter-spacing: 2px; }
+.btn-settings-close { background: transparent; color: var(--warning); border: none; font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 6px; }
+.btn-settings-close:hover { color: white; }
+
+.settings-section { margin-bottom: 18px; }
+.settings-section h3 { color: var(--matrix-green); font-family: 'Orbitron', sans-serif; font-size: 0.85rem; letter-spacing: 2px; margin-bottom: 10px; }
+.settings-row { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 10px; margin-bottom: 10px; }
+.settings-row label { color: var(--ui-blue); font-size: 0.85rem; }
+.settings-row input[type="range"] { width: 100%; accent-color: var(--matrix-green); }
+.settings-row select, .settings-row input[type="checkbox"] {
+  background: #0a0e14; color: var(--matrix-green); border: 1px solid var(--ui-blue); padding: 4px 6px; font-family: inherit;
+}
+.settings-vol-label { color: var(--matrix-green); min-width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
+.settings-row-actions { grid-template-columns: 1fr; }
+.btn-settings-action {
+  background: var(--matrix-green); color: black; border: none; padding: 8px 14px;
+  font-family: 'Orbitron', sans-serif; font-size: 0.85rem; cursor: pointer; border-radius: 3px;
+  letter-spacing: 1px;
+}
+.btn-settings-action:hover { box-shadow: 0 0 8px var(--matrix-green); }
+.settings-hint { font-size: 0.78rem; color: var(--cmd-gray); line-height: 1.5; }
+.settings-hint code { color: var(--matrix-green); background: rgba(74,246,38,0.08); padding: 1px 4px; border-radius: 2px; }
+.settings-hint a { color: var(--ui-blue); }
+
+/* ===== Multijugador LAN (Fase 3) ===== */
+.btn-multiplayer {
+  background: transparent; border: 1px solid var(--ui-blue);
+  color: var(--ui-blue); padding: 8px 12px; margin-top: 8px;
+  font-family: inherit; font-size: 0.85rem; letter-spacing: 1px;
+  cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+  width: 100%;
+}
+.btn-multiplayer:hover { box-shadow: 0 0 10px var(--ui-blue); background: rgba(0,170,255,0.08); }
+.lobby-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2000; padding: 20px; overflow: auto;
+}
+.lobby-overlay.hidden { display: none; }
+.lobby-frame {
+  background: #0c0c0c; border: 1px solid var(--ui-blue);
+  width: min(1100px, 96vw); max-height: 92vh; overflow-y: auto;
+  box-shadow: 0 0 40px rgba(0,170,255,0.35);
+}
+.lobby-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 20px; border-bottom: 1px solid #1a3a4a;
+  background: rgba(0,170,255,0.05);
+}
+.lobby-header h2 { color: var(--ui-blue); margin: 0; letter-spacing: 2px; font-size: 1.1rem; }
+.lobby-screen { padding: 20px; }
+.lobby-cols {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;
+}
+@media (max-width: 800px) { .lobby-cols { grid-template-columns: 1fr; } }
+.lobby-card {
+  border: 1px solid #1a3a4a; padding: 14px; background: rgba(0,0,0,0.4);
+}
+.lobby-card h3 {
+  color: var(--matrix-green); margin: 0 0 10px 0; font-size: 0.9rem;
+  letter-spacing: 1px; border-bottom: 1px dashed #1a3a4a; padding-bottom: 6px;
+}
+.lobby-row {
+  display: flex; align-items: center; gap: 10px; margin: 8px 0;
+}
+.lobby-row label { flex: 0 0 140px; color: var(--cmd-gray); font-size: 0.82rem; }
+.lobby-row input[type="text"], .lobby-row input[type="number"], .lobby-row select {
+  flex: 1; background: #000; color: var(--matrix-green);
+  border: 1px solid #1a3a4a; padding: 6px 8px; font-family: inherit;
+  font-size: 0.85rem;
+}
+.lobby-row input[type="checkbox"] { width: auto; flex: 0; }
+.lobby-row-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.btn-lobby-primary, .btn-lobby-secondary, .btn-lobby-danger {
+  font-family: inherit; padding: 8px 14px; font-size: 0.85rem;
+  letter-spacing: 1px; cursor: pointer; text-transform: uppercase;
+  transition: all 0.2s; border: 1px solid;
+}
+.btn-lobby-primary { background: var(--matrix-green); color: #000; border-color: var(--matrix-green); }
+.btn-lobby-primary:hover { box-shadow: 0 0 12px var(--matrix-green); }
+.btn-lobby-secondary { background: transparent; color: var(--ui-blue); border-color: var(--ui-blue); }
+.btn-lobby-secondary:hover { background: rgba(0,170,255,0.1); }
+.btn-lobby-danger { background: transparent; color: var(--warning); border-color: var(--warning); }
+.btn-lobby-danger:hover { background: rgba(255,68,68,0.1); }
+.lobby-recent-wrap { margin-top: 10px; }
+.lobby-recent { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.lobby-recent-btn {
+  background: transparent; border: 1px dashed #1a3a4a; color: var(--ui-blue);
+  padding: 4px 8px; font-family: inherit; font-size: 0.78rem; cursor: pointer;
+}
+.lobby-recent-btn:hover { background: rgba(0,170,255,0.08); }
+.lobby-history-wrap { margin-top: 16px; border-top: 1px dashed #1a3a4a; padding-top: 12px; }
+.lobby-history-wrap h3 { color: var(--matrix-green); font-size: 0.9rem; letter-spacing: 1px; }
+.lobby-history { list-style: none; padding: 0; margin: 8px 0; font-size: 0.82rem; }
+.lobby-history li { padding: 3px 0; border-bottom: 1px dashed #1a1a1a; }
+.lobby-room-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 14px; background: rgba(0,170,255,0.05); border: 1px solid #1a3a4a;
+  margin-bottom: 14px;
+}
+.lobby-room-code {
+  font-size: 1.6rem; color: var(--matrix-green); letter-spacing: 3px;
+  font-weight: bold; margin: 4px 0;
+}
+.lobby-room-phase { font-size: 1.1rem; color: var(--ui-blue); letter-spacing: 2px; }
+.lobby-players { list-style: none; padding: 0; margin: 0; }
+.lobby-players li { padding: 5px 0; border-bottom: 1px dashed #1a1a1a; font-size: 0.85rem; }
+.ready-icon { color: var(--matrix-green); margin-left: 6px; }
+.team-tag {
+  font-size: 0.7rem; color: var(--cmd-gray); margin-left: 6px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.lobby-chat { grid-column: 1 / -1; }
+.lobby-chat-log {
+  height: 160px; overflow-y: auto; background: #000; border: 1px solid #1a3a4a;
+  padding: 8px; font-size: 0.82rem; margin-bottom: 8px;
+}
+.lobby-chat-log .chat-from { color: var(--ui-blue); font-weight: bold; }
+
+/* ===== HUD flotante de partida (Sub-fase C) ===== */
+.match-hud {
+  position: fixed; top: 80px; right: 20px; z-index: 1500;
+  background: rgba(0,0,0,0.92); border: 1px solid var(--matrix-green);
+  padding: 12px 14px; min-width: 220px; max-width: 280px;
+  box-shadow: 0 0 18px rgba(74,246,38,0.35);
+  font-family: inherit; font-size: 0.82rem;
+}
+.match-hud.hidden { display: none; }
+.match-hud header {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px dashed #1a3a4a; padding-bottom: 6px; margin-bottom: 8px;
+}
+.match-hud-title { color: var(--matrix-green); font-weight: bold; letter-spacing: 1px; }
+.match-hud-timer { color: var(--ui-blue); font-weight: bold; font-size: 1rem; }
+.match-hud-scores { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.match-hud-score {
+  border: 1px solid #1a3a4a; padding: 4px 8px; font-size: 0.78rem;
+  background: rgba(0,0,0,0.5);
+}
+.match-hud-log { font-size: 0.75rem; color: var(--cmd-gray); line-height: 1.5; }
+.match-hud-log div { padding: 1px 0; }
+
+/* ---------- Toasts globales (bottom-right) ---------- */
+.toast-container {
+  position: fixed; right: 24px; bottom: 24px; left: auto; transform: none;
+  display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 10px;
+  z-index: 5000; pointer-events: none;
+  max-width: min(420px, 92vw);
+}
+.toast {
+  pointer-events: auto;
+  display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;
+  min-width: 280px; max-width: 100%;
+  padding: 10px 12px 10px 14px;
+  background: #0c0c0c; color: var(--cmd-gray);
+  border-left: 4px solid var(--ui-blue);
+  border: 1px solid #1a3a4a;
+  font-family: 'Roboto Mono', monospace; font-size: 0.85rem; line-height: 1.4;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.6), 0 0 12px rgba(0,170,255,0.2);
+  opacity: 0; transform: translateY(12px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast.toast-in { opacity: 1; transform: translateY(0); }
+.toast.toast-out { opacity: 0; transform: translateY(12px); }
+.toast-text { flex: 1; word-break: break-word; }
+.toast-close {
+  background: transparent; color: var(--cmd-gray); border: none;
+  font-size: 1.2rem; line-height: 1; cursor: pointer; padding: 0 4px;
+  font-family: inherit;
+}
+.toast-close:hover { color: #fff; }
+.toast-info  { border-left-color: var(--ui-blue);     box-shadow: 0 6px 24px rgba(0,0,0,0.6), 0 0 12px rgba(0,170,255,0.25); }
+.toast-warn  { border-left-color: #ffaa00;            box-shadow: 0 6px 24px rgba(0,0,0,0.6), 0 0 12px rgba(255,170,0,0.25); }
+.toast-error { border-left-color: var(--warning);     box-shadow: 0 6px 24px rgba(0,0,0,0.6), 0 0 12px rgba(246,38,74,0.3); color: #ffd6dd; }
+.toast-actions {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  align-self: stretch; margin-top: 6px;
+  flex-basis: 100%;
+}
+.toast-text + .toast-actions { margin-left: 0; }
+.toast-action {
+  font-family: inherit; font-size: 0.78rem; padding: 4px 10px;
+  border: 1px solid currentColor; background: transparent; cursor: pointer;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.toast-action-primary { color: var(--ui-blue); }
+.toast-action-primary:hover { background: var(--ui-blue); color: #000; }
+.toast-action-danger  { color: var(--warning); }
+.toast-action-danger:hover  { background: var(--warning); color: #fff; }
+
+/* ---------- Tutorial por modo en el lobby ---------- */
+.mode-tutorial {
+  background: rgba(0,170,255,0.05); border: 1px solid #1a3a4a;
+  padding: 12px 14px; margin: 10px 0 16px;
+  font-family: 'Roboto Mono', monospace; font-size: 0.83rem; line-height: 1.5;
+  color: var(--cmd-gray);
+}
+.mode-tutorial:empty { display: none; }
+.mode-tutorial h4 {
+  color: var(--ui-blue); margin: 0 0 6px; font-size: 0.95rem; letter-spacing: 1px;
+}
+.mode-tutorial p { margin: 4px 0; }
+.mode-tutorial .mode-section-label {
+  color: var(--matrix-green); font-weight: bold; margin-right: 4px;
+  text-transform: uppercase; font-size: 0.78rem; letter-spacing: 1px;
+}
+.mode-tutorial ul { margin: 6px 0 0; padding-left: 20px; }
+.mode-tutorial li { margin: 2px 0; }
+
+/* ---------- Countdown 3·2·1 sobre el overlay ---------- */
+.lobby-countdown {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.85); z-index: 10;
+  pointer-events: none;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(8rem, 22vw, 16rem);
+  color: var(--matrix-green);
+  text-shadow: 0 0 30px rgba(74,246,38,0.8), 0 0 60px rgba(74,246,38,0.4);
+  font-weight: 700;
+}
+.lobby-countdown.hidden { display: none; }
+.lobby-countdown.go {
+  font-size: clamp(3rem, 9vw, 6rem); color: var(--ui-blue);
+  text-shadow: 0 0 30px rgba(0,212,255,0.9), 0 0 60px rgba(0,212,255,0.5);
+  letter-spacing: 6px;
+}
+.lobby-countdown .pulse {
+  display: inline-block;
+  animation: countdown-pulse 0.95s ease-out;
+}
+@keyframes countdown-pulse {
+  0%   { transform: scale(0.4); opacity: 0; }
+  30%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.lobby-frame { position: relative; }
+
+/* Modal genérico de confirmación. */
+.modal-confirm {
+  max-width: 480px; padding: 24px 28px;
+}
+.modal-confirm .modal-text-content {
+  margin: 12px 0 18px; line-height: 1.5; font-size: 0.95rem;
+}
+
+/* Etiqueta del scope del chat (GENERAL / EQUIPO). */
+.chat-scope-label {
+  display: inline-block; margin-left: 10px;
+  font-size: 0.7rem; letter-spacing: 1px;
+  padding: 2px 8px; border: 1px solid var(--ui-border);
+  color: var(--ui-blue); background: rgba(0,170,255,0.06);
+}
+.chat-scope-label.team-red {
+  color: var(--warning); border-color: rgba(246,38,74,0.6);
+  background: rgba(246,38,74,0.08);
+}
+.chat-scope-label.team-blue {
+  color: var(--ui-blue); border-color: var(--ui-border);
+  background: rgba(0,170,255,0.1);
+}
+
+/* Jugadores ausentes (desconectados) en la lista. */
+.lobby-players li.disconnected {
+  opacity: 0.55; font-style: italic;
+}
+
+/* Bloque colapsable (cabecera + cuerpo) usado en el tutorial del modo. */
+.lobby-collapsible { margin: 12px 0; }
+.lobby-collapse-toggle {
+  width: 100%; text-align: left; cursor: pointer;
+  background: rgba(0,170,255,0.06);
+  color: var(--ui-blue);
+  border: 1px solid var(--ui-border);
+  padding: 6px 10px;
+  font-family: 'Orbitron', sans-serif; font-size: 0.85rem; letter-spacing: 1px;
+}
+.lobby-collapse-toggle:hover { background: rgba(0,170,255,0.12); }
+.lobby-collapse-toggle .caret { display: inline-block; transition: transform 0.18s ease; margin-right: 6px; }
+.lobby-collapsible.collapsed .lobby-collapse-toggle .caret { transform: rotate(-90deg); }
+.collapsible-body { transition: max-height 0.22s ease, opacity 0.18s ease; overflow: hidden; }
+.lobby-collapsible.collapsed .collapsible-body,
+.lobby-collapsible.force-collapsed .collapsible-body {
+  max-height: 0 !important; opacity: 0; padding-top: 0; padding-bottom: 0; margin: 0; border-width: 0;
+}
