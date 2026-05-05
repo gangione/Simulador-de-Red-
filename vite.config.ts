@@ -17,6 +17,19 @@ export default defineConfig({
           },
         },
       },
+      {
+        // Preload script (bridge entre renderer y main)
+        entry: 'electron/preload.js',
+        onstart(args) { args.reload(); },
+        vite: {
+          build: {
+            outDir: 'dist-electron',
+            rollupOptions: {
+              external: ['electron'],
+            },
+          },
+        },
+      },
     ]),
     renderer(),
   ],

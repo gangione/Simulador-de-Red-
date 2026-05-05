@@ -23,6 +23,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.ts", "electron/**/*.ts"],
-  "exclude": ["node_modules", "dist", "dist-electron"]
+  "include": ["src/**/*.ts", "electron/**/*.ts", "server/protocol.ts"],
+  "exclude": ["node_modules", "dist", "dist-electron", "server-dist", "server/gameServer.ts", "server/words.ts", "server/modes/**"]
 }
