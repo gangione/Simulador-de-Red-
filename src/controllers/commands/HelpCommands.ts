@@ -3,6 +3,8 @@ import type { MissionModel } from '../../models/MissionModel';
 import type { UserModel } from '../../models/UserModel';
 import type { IAIAgent } from '../../services/AIAgentService';
 import type { SessionStorageProvider } from '../../services/StorageService';
+import type { LobbyService } from '../../services/LobbyService';
+import type { ConfirmService } from '../../services/ConfirmService';
 
 /**
  * Comandos de Ayuda, Misiones e IA.
@@ -231,12 +233,40 @@ export class FocusMissionCommand implements ICommand {
  * ExitCommand — abandona el modo misión SIN abortar nada: quita el foco de
  * todas las misiones (quedan activas y pausadas, conservando su progreso) y
  * limpia la consola, dejando al operador en la "home" con banner + guía.
+ *
+ * Subcomando: `exit game` (alias `salir partida`) → abandona la partida
+ * multijugador en curso con confirmación previa.
  */
 export class ExitCommand implements ICommand {
   readonly name = 'exit';
   readonly aliases = ['salir', 'home'];
-  constructor(private readonly missions: MissionModel) {}
-  execute(): ICommandResult {
+  constructor(
+    private readonly missions: MissionModel,
+    private readonly lobby?: LobbyService,
+    private readonly confirm?: ConfirmService,
+  ) {}
+  async execute(ctx: ICommandContext): Promise<ICommandResult> {
+    const sub = (ctx.args[1] ?? '').toLowerCase();
+    if (sub === 'game' || sub === 'partida') {
+      if (!this.lobby) {
+        return { output: [['No hay servicio de lobby disponible.', 'var(--warning)']] };
+      }
+      const room = this.lobby.getRoom();
+      if (!room) {
+        return { output: [['No estás en ninguna partida.', 'var(--cmd-gray)']] };
+      }
+      if (this.confirm) {
+        const ok = await this.confirm.ask(
+          room.phase === 'match'
+            ? 'La partida está en curso. Si te retirás se notificará a tu equipo y perderás tu progreso. ¿Seguro que querés salir?'
+            : '¿Seguro que querés salir de la sala?',
+          { acceptLabel: 'RETIRARME', cancelLabel: 'CANCELAR', title: 'ABANDONAR PARTIDA' },
+        );
+        if (!ok) return { output: [['Cancelado.', 'var(--cmd-gray)']] };
+      }
+      this.lobby.leave();
+      return { output: [['Abandonaste la partida.', 'var(--warning)']] };
+    }
     // Quita el foco (no aborta). Las misiones activas siguen activas y pausadas.
     this.missions.unfocus();
     // Sentinel reconocido por AppController → emite TerminalClear,
@@ -347,14 +377,34 @@ export class TutorialAttackCommand implements ICommand {
  */
 export class TheoryCommand implements ICommand {
   readonly name = '?teoria';
+  readonly aliases = ['?ia', '?ask'];
   constructor(private readonly agent: IAIAgent) {}
   async execute(ctx: ICommandContext): Promise<ICommandResult> {
-    const concept = ctx.args.slice(1).join(' ').trim();
-    if (!concept) {
-      return { output: [['Uso: ?teoria <concepto>   Ej: ?teoria firewall']] };
+    const query = ctx.args.slice(1).join(' ').trim();
+    if (!query) {
+      return {
+        output: [
+          ['Uso: ?teoria <concepto>            Ej: ?teoria firewall', 'var(--ui-blue)'],
+          ['     ?ask <pregunta libre>        Ej: ?ask cómo prevengo ARP spoofing', 'var(--cmd-gray)'],
+        ],
+      };
     }
-    const answer = await this.agent.explain(concept);
-    return { output: [[answer, 'var(--ui-blue)']] };
+    // El alias `?ask` lo trata como pregunta libre; cualquier otro nombre como concepto.
+    const isAsk = ctx.args[0]?.toLowerCase() === '?ask';
+    try {
+      const answer = isAsk
+        ? await this.agent.ask(query)
+        : await this.agent.explain(query);
+      return { output: [[answer, 'var(--ui-blue)']] };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'error desconocido';
+      return {
+        output: [
+          [`[IA] No pude obtener respuesta: ${msg}`, 'var(--warning)'],
+          [`Verificá que Ollama esté corriendo (ollama serve) y el modelo descargado.`, 'var(--cmd-gray)'],
+        ],
+      };
+    }
   }
 }
 

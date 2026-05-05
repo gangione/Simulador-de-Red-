@@ -106,6 +106,10 @@ export class AppController {
         text: `\n[FALLO DEL SISTEMA]: Error interno al ejecutar.`,
         color: 'var(--warning)',
       });
+      this.bus.emit(Events.ToastShow, {
+        kind: 'error',
+        message: 'Fallo del sistema: error interno al ejecutar el comando.',
+      });
     } finally {
       this.bus.emit(Events.TaskStatusChanged, 'ESPERANDO INSTRUCCIONES...');
     }

@@ -108,4 +108,36 @@ export class UserModel {
     }
     return { changed, newRank, message };
   }
+
+  // ---------- Historial de partidas multijugador (Fase 3) ----------
+  /**
+   * Registra el resultado de una partida en el historial persistente
+   * (`lobby:history`, últimos 20).
+   */
+  pushMatch(entry: {
+    code: string;
+    mode: string;
+    role: string;
+    result: 'win' | 'lose' | 'draw';
+    score: number;
+    ts?: number;
+  }): void {
+    const list = this.storage.get<MatchHistoryEntry[]>('lobby:history', []);
+    list.unshift({ ts: Date.now(), ...entry });
+    this.storage.set('lobby:history', list.slice(0, 20));
+  }
+
+  /** Devuelve el historial de partidas (más reciente primero). */
+  getMatches(): ReadonlyArray<MatchHistoryEntry> {
+    return this.storage.get<MatchHistoryEntry[]>('lobby:history', []);
+  }
+}
+
+export interface MatchHistoryEntry {
+  ts: number;
+  code: string;
+  mode: string;
+  role: string;
+  result: 'win' | 'lose' | 'draw';
+  score: number;
 }

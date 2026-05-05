@@ -46,3 +46,57 @@ export class StubAIAgent implements IAIAgent {
     return `[IA — Modo Stub] Pregunta recibida: "${prompt}". Sin backend conectado todavía.`;
   }
 }
+
+/**
+ * FallbackAIAgent — Patrón Decorator/Composite.
+ *
+ * Intenta delegar en `primary`. Si éste no está listo (o lanza una excepción
+ * en cualquier llamada) cae automáticamente en `secondary` y antepone un
+ * mensaje pedagógico para que el alumno entienda por qué la respuesta vino
+ * del stub.
+ *
+ * SOLID — Open/Closed: encadenando `FallbackAIAgent`s se pueden agregar
+ *         más backends (OpenAI → Ollama → Stub) sin tocar consumidores.
+ */
+export class FallbackAIAgent implements IAIAgent {
+  constructor(
+    private readonly primary: IAIAgent,
+    private readonly secondary: IAIAgent,
+  ) {}
+
+  isReady(): boolean {
+    return this.primary.isReady() || this.secondary.isReady();
+  }
+
+  async explain(concept: string): Promise<string> {
+    if (this.primary.isReady()) {
+      try {
+        return await this.primary.explain(concept);
+      } catch (err) {
+        return this.degradedAnswer(await this.secondary.explain(concept), err);
+      }
+    }
+    return this.degradedAnswer(await this.secondary.explain(concept));
+  }
+
+  async ask(prompt: string): Promise<string> {
+    if (this.primary.isReady()) {
+      try {
+        return await this.primary.ask(prompt);
+      } catch (err) {
+        return this.degradedAnswer(await this.secondary.ask(prompt), err);
+      }
+    }
+    return this.degradedAnswer(await this.secondary.ask(prompt));
+  }
+
+  /** Antepone un aviso al texto del fallback explicando por qué se cayó. */
+  private degradedAnswer(text: string, err?: unknown): string {
+    const why = err instanceof Error ? ` (${err.message})` : '';
+    const head =
+      `[IA — Backend principal no disponible${why}]\n` +
+      `Sugerencia: instalá Ollama desde https://ollama.com y ejecutá ` +
+      `'ollama pull llama3.2' en una terminal externa para activar la IA real.\n\n`;
+    return head + text;
+  }
+}

@@ -14,7 +14,11 @@ import './style.css';
 
 import { EventBus, Events } from './services/EventBus';
 import { SessionStorageProvider } from './services/StorageService';
-import { StubAIAgent } from './services/AIAgentService';
+import { StubAIAgent, FallbackAIAgent } from './services/AIAgentService';
+import { OllamaAIAgent } from './services/OllamaAIAgent';
+import { AudioService } from './services/AudioService';
+import { LobbyService } from './services/LobbyService';
+import { ConfirmService } from './services/ConfirmService';
 
 import { NetworkModel } from './models/NetworkModel';
 import { MissionModel } from './models/MissionModel';
@@ -23,6 +27,10 @@ import { FileSystemModel } from './models/FileSystemModel';
 
 import { TerminalView } from './views/TerminalView';
 import { DashboardView } from './views/DashboardView';
+import { SettingsView } from './views/SettingsView';
+import { LobbyView } from './views/LobbyView';
+import { MatchHudView } from './views/MatchHudView';
+import { ToastView } from './views/ToastView';
 
 import { CommandController } from './controllers/CommandController';
 import { AppController } from './controllers/AppController';
@@ -42,6 +50,12 @@ import {
   TutorialRedCommand, TutorialDosCommand, TutorialFirewallCommand, TutorialAttackCommand,
   TheoryCommand, SaveCommand,
 } from './controllers/commands/HelpCommands';
+import {
+  VolumeCommand, MuteCommand, PlayCommand, PauseCommand,
+} from './controllers/commands/AudioCommands';
+import {
+  LobbyOpenCommand, JoinCommand, HostCommand, TeamCommand, ReadyCommand, LeaveCommand,
+} from './controllers/commands/LobbyCommands';
 
 // Captura global de errores: "[FALLO DEL SISTEMA]".
 window.addEventListener('error', (e) => {
@@ -51,6 +65,7 @@ window.addEventListener('error', (e) => {
   }
 });
 
+// Carga inicial de la aplicación una vez que el DOM está listo.
 document.addEventListener('DOMContentLoaded', () => {
   // ----- Servicios -----
   const bus = new EventBus();
@@ -58,7 +73,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Restaura el progreso previamente guardado en `localStorage` hacia
   // `sessionStorage`, para que los modelos lo lean al instanciarse.
   storage.restore();
-  const ai = new StubAIAgent();
+  // Backend IA real (Ollama local) con fallback al stub si no responde.
+  const ai = new FallbackAIAgent(new OllamaAIAgent(), new StubAIAgent());
+  // Música de fondo + persistencia (volumen/mute/pista) en localStorage.
+  const bgmEl = document.getElementById('bgm') as HTMLAudioElement | null;
+  const audio = bgmEl ? new AudioService(bgmEl, storage) : null;
+  // Cliente WebSocket multijugador (Fase 3). Lo controlan LobbyView y LobbyCommands.
+  const lobby = new LobbyService(bus, storage);
+  // Confirmaciones modales reutilizables.
+  const confirmDialog = new ConfirmService();
 
   // ----- Modelos -----
   const network = new NetworkModel(storage);
@@ -71,6 +94,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const dashboard = new DashboardView(bus, missions);
   terminal.init();
   dashboard.init();
+  const toast = new ToastView(bus);
+  toast.init();
+  if (audio) {
+    const settings = new SettingsView(bus, audio);
+    settings.init();
+  }
+  const lobbyView = new LobbyView(bus, lobby, users, confirmDialog);
+  lobbyView.init();
+  const matchHud = new MatchHudView(bus);
+  matchHud.init();
 
   // La terminal necesita saber cuándo empieza/termina la ejecución de un comando
   // para bloquear el input mientras dura.
@@ -104,13 +137,27 @@ document.addEventListener('DOMContentLoaded', () => {
   commands.register(new StartMissionCommand(missions));
   commands.register(new AbortMissionCommand(missions));
   commands.register(new FocusMissionCommand(missions));
-  commands.register(new ExitCommand(missions));
+  commands.register(new ExitCommand(missions, lobby, confirmDialog));
   commands.register(new SaveCommand(storage, missions, users));
   commands.register(new TutorialRedCommand());
   commands.register(new TutorialDosCommand());
   commands.register(new TutorialFirewallCommand());
   commands.register(new TutorialAttackCommand());
   commands.register(new TheoryCommand(ai));
+  if (audio) {
+    commands.register(new VolumeCommand(audio));
+    commands.register(new MuteCommand(audio));
+    commands.register(new PlayCommand(audio));
+    commands.register(new PauseCommand(audio));
+  }
+
+  // Comandos del lobby multijugador (atajos de terminal equivalentes a los botones).
+  commands.register(new LobbyOpenCommand());
+  commands.register(new JoinCommand(lobby));
+  commands.register(new HostCommand(lobby));
+  commands.register(new TeamCommand(lobby));
+  commands.register(new ReadyCommand(lobby));
+  commands.register(new LeaveCommand(lobby));
 
   commands.register(new IpconfigCommand(network));
   commands.register(new ArpCommand(network));
@@ -143,6 +190,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // ----- Orquestador -----
   const app = new AppController(bus, commands, missions, users);
   app.start();
+
+  // Puente Fase 3: si hay partida en curso, reportar la acción al servidor
+  // tras cada comando ejecutado por el usuario. Extrae el primer arg como
+  // "target" cuando parece IP/host.
+  bus.on<string>(Events.CommandSubmitted, (raw) => {
+    if (lobby.getStatus() !== 'in-match') return;
+    const parts = String(raw).trim().split(/\s+/);
+    const cmd = parts[0] ?? '';
+    const target = parts.slice(1).find((a) => /^\d{1,3}(\.\d{1,3}){3}$/.test(a) || /^[a-z][\w.-]+$/i.test(a));
+    if (cmd) lobby.reportAction(cmd, target);
+  });
 
   // Re-aplica la etiqueta de rango si el progreso vino de una sesión previa.
   users.recomputeRank(missions.getCompletedCount());
