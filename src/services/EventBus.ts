@@ -90,4 +90,46 @@ export const Events = {
   PromptChanged: 'prompt:changed',
   /** Cambio de estado del sistema ("EJECUTANDO COMANDO...", "ESPERANDO INSTRUCCIONES..."). */
   TaskStatusChanged: 'task:status',
+
+  // ---------- Lobby / multiplayer (Fase 3) ----------
+  /** Estado completo de la sala. Payload: snapshot de Room. */
+  LobbyState: 'lobby:state',
+  /** Conexión / desconexión del cliente WS. Payload: `{status, error?}`. */
+  LobbyConnection: 'lobby:connection',
+  /** Otro jugador entró. Payload: `{ alias, team }`. */
+  LobbyPlayerJoined: 'lobby:player-joined',
+  /** Otro jugador salió. Payload: `{ alias }`. */
+  LobbyPlayerLeft: 'lobby:player-left',
+  /** Mensaje de chat. Payload: `{ from, text }`. */
+  LobbyChat: 'lobby:chat',
+  /** La partida arrancó. Payload: snapshot de match. */
+  LobbyMatchStarted: 'lobby:match-started',
+  /** Tick periódico de la partida. Payload: `{ timeLeft, scores }`. */
+  LobbyMatchTick: 'lobby:match-tick',
+  /** Evento puntual durante la partida (captura, defensa, oleada...). */
+  LobbyMatchEvent: 'lobby:match-event',
+  /** Servidor capturado. Payload: `{ ip, by, team }`. */
+  LobbyServerCaptured: 'lobby:server-captured',
+  /** La partida terminó. Payload: `{ winner, scores, summary? }`. */
+  LobbyMatchEnded: 'lobby:match-ended',
+  /** Error reportado por el servidor (string para mostrar). */
+  LobbyError: 'lobby:error',
+  /** Conteo regresivo previo a iniciar la partida. Payload: `{ value: number }` (3,2,1,0). */
+  LobbyMatchCountdown: 'lobby:match-countdown',
+  /** Pedido de aprobación de reconexión recibido (somos miembro del team destino). Payload: `{ requestId, alias, team }`. */
+  LobbyJoinRequest: 'lobby:join-request',
+  /** Solicitud de reconexión resuelta por algún miembro del team. Payload: `{ requestId, by, accepted }`. */
+  LobbyJoinResolved: 'lobby:join-resolved',
+  /** Nuestra solicitud de reconexión está pendiente. Payload: `{ message, team }`. */
+  LobbyJoinPending: 'lobby:join-pending',
+  /** Información de reconexión exitosa o cambios automáticos de equipo. Payload: `string` (mensaje). */
+  LobbyRejoinInfo: 'lobby:rejoin-info',
+  /** El servidor pide al cliente que elija equipo para entrar a una partida en curso. Payload: `{ mode, code }`. */
+  LobbyTeamRequired: 'lobby:team-required',
+
+  // ---------- Notificaciones globales ----------
+  /** Pop-up bottom-center. Payload: `{ kind: 'info'|'warn'|'error', message: string, id?: string, actions?: ToastAction[] }`. */
+  ToastShow: 'toast:show',
+  /** Cerrar un toast por id. Payload: `string` (id). */
+  ToastDismiss: 'toast:dismiss',
 } as const;
