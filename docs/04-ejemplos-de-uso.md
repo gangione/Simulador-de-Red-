@@ -136,3 +136,78 @@ Equivale a `clear`. Restaura el HTML inicial del `<pre id="terminal-output">`
 ```
 
 El catálogo completo con regex está en [06 · Misiones](06-misiones.md).
+
+## K. Partida multijugador LAN (Sesión de 3 jugadores)
+
+Esta sesión ilustra el flujo completo de Fase 3. La notación `PC1:`, `PC2:`,
+`PC3:` indica qué terminal está ejecutando el comando.
+
+**Paso 1 — Levantar servidor y crear sala (host)**
+```text
+PC1: [CYBER-OS] > hostear Diego
+>> Servidor local iniciado en puerto 7331.
+>> Sala creada. Código: KXMV
+>> Lobby abierto. Esperando jugadores...
+```
+
+**Paso 2 — Unirse desde otra máquina**
+```text
+PC2: [CYBER-OS] > unirse KXMV 192.168.1.5 Cristian
+>> Conectado a KXMV como "Cristian".
+
+PC3: [CYBER-OS] > unirse KXMV 192.168.1.5 Alumno01
+>> Conectado a KXMV como "Alumno01".
+```
+
+**Paso 3 — Elegir equipos y marcar listo**
+```text
+PC1: [CYBER-OS] > equipo red
+PC2: [CYBER-OS] > equipo blue
+PC3: [CYBER-OS] > equipo blue
+PC1: [CYBER-OS] > listo
+PC2: [CYBER-OS] > listo
+PC3: [CYBER-OS] > listo
+```
+
+**Paso 4 — El host inicia la partida**
+
+El host puede usar el botón "Iniciar" del panel lobby (abre con `lobby`)
+o desde la terminal si el modo ya tiene todos los jugadores listos.
+
+**Paso 5 — Un cuarto jugador quiere unirse durante la partida**
+
+El jugador PC4 intenta reconectarse con un equipo ya ocupado.
+El servidor emite `join-request` al equipo destino (red) y en todos los
+clientes del equipo aparece un **toast no bloqueante**:
+
+```
+┌─────────────────────────────────────────────┐
+│ ℹ  Nuevojugador quiere unirse al equipo 🔴. │
+│ [ACEPTAR]  [RECHAZAR]                        │
+└─────────────────────────────────────────────┘
+```
+
+- Si Diego (PC1) hace clic en **ACEPTAR**, el servidor emite `join-resolved`
+  a todos los miembros del equipo red.
+- El toast se cierra en **todos** los clientes del equipo automáticamente.
+- Un toast de información secundario confirma: "Solicitud aceptada por Diego".
+
+> Este flujo evita interrumpir la partida con modales bloqueantes.
+> Detalles del protocolo: [`docs/08-multijugador.md`](08-multijugador.md)
+> y [`server/protocol.ts`](../server/protocol.ts).
+
+**Paso 6 — Chat durante la partida**
+
+```text
+PC1: [CYBER-OS] > chat Voy a atacar .15, cubrí el .20
+```
+
+El mensaje viaja por `LobbyService` → WebSocket → `gameServer.ts` →
+broadcast al equipo (scope `team`) o a todos (scope `global`).
+El evento `lobby:chat` lo recibe `LobbyView` y lo muestra en el panel de chat.
+
+**Paso 7 — La partida termina**
+
+Al agotar el tiempo o alcanzar el objetivo, el servidor emite `match-ended`.
+`MatchHudView` muestra el resultado final, scores y summary. El lobby vuelve
+a la fase `lobby` para jugar otra ronda.

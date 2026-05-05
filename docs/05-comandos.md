@@ -71,6 +71,41 @@ Implementación completa en
 Implementación en
 [`src/controllers/commands/FileSystemCommands.ts`](../src/controllers/commands/FileSystemCommands.ts).
 
+## Audio (AudioCommands)
+
+| Nombre     | Alias                      | Sintaxis              | Qué hace |
+|------------|----------------------------|-----------------------|----------|
+| `volumen`  | `volume`, `vol`            | `volumen <0–100>`     | Ajusta el volumen de la música de fondo. |
+| `mute`     | `silencio`                 | `mute`                | Silencia / activa la música (toggle). |
+| `play`     | `musica`                   | `play`                | Reanuda la reproducción si está pausada. |
+| `pause`    | `pausa`                    | `pause`               | Pausa la música de fondo. |
+
+Implementación en
+[`src/controllers/commands/AudioCommands.ts`](../src/controllers/commands/AudioCommands.ts).
+
+## Multijugador / Lobby (LobbyCommands)
+
+Todos los comandos de esta categoría se conectan a través de
+[`LobbyService`](../src/services/LobbyService.ts) vía WebSocket.
+El servidor de juego se inicia automáticamente al abrir la app en Electron.
+
+| Nombre    | Alias              | Sintaxis                              | Qué hace |
+|-----------|--------------------|---------------------------------------|----------|
+| `lobby`   | —                  | `lobby`                               | Abre/cierra el panel de lobby en el dashboard. |
+| `hostear` | `host`             | `hostear <alias>`                     | Crea una sala nueva y espera jugadores. Imprime el código de 4 letras. |
+| `unirse`  | `join`             | `unirse <CÓDIGO> <IP-host> <alias>`   | Se conecta a una sala existente por código + IP LAN del host. |
+| `equipo`  | `team`             | `equipo <red\|blue\|auto>`            | Elige (o cambia) de equipo antes de que arranque la partida. |
+| `listo`   | `ready`            | `listo`                               | Marca al jugador como listo. Cuando todos están listos, el host puede iniciar. |
+| `leave`   | `salir-sala`       | `leave`                               | Sale de la sala actual (sin cerrar el servidor). |
+
+> Si un jugador intenta unirse durante una partida activa y el equipo requiere
+> aprobación, el host y sus compañeros ven un **toast de aprobación** con botones
+> ACEPTAR / RECHAZAR. El servidor mantiene la solicitud pendiente 60 s.
+> Ver detalles en [08 · Multijugador](08-multijugador.md).
+
+Implementación en
+[`src/controllers/commands/LobbyCommands.ts`](../src/controllers/commands/LobbyCommands.ts).
+
 ## Crear un comando nuevo
 
 ```ts

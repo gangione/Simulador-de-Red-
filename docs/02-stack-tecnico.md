@@ -7,34 +7,39 @@
 | Lenguaje        | **TypeScript 5.4** (modo `strict` en renderer y server) |
 | Bundler         | **Vite 5** + `vite-plugin-electron 0.28`   |
 | Renderer        | HTML5 + CSS3 puros (sin frameworks UI)     |
-| Runtime         | **Electron 29** (Chromium + Node)          |
-| Game server     | **Node + `ws` 8** compilado con `tsconfig.server.json` (salida `server-dist/`) y forkeado por Electron |
+| Runtime         | **Electron 29** (Chromium + Node, `contextIsolation: true`) |
+| Game server     | **Node + `ws` 8**, código **100 % TypeScript** compilado con `tsconfig.server.json` → `server-dist/`, forkeado por Electron |
+| Preload         | `electron/preload.js` — expone `window.lobbyAPI` al renderer vía `contextBridge` |
 | Empaquetado     | `electron-builder 24.9` (target NSIS Windows). `extraResources` copia `server-dist/` y `node_modules/ws` |
 | Persistencia    | `sessionStorage` (vía `IStorageProvider`) + `localStorage` para guardado durable |
-| IA (Fase 2)     | Interfaz `IAIAgent` con `StubAIAgent` por defecto, listo para enchufar Ollama / OpenAI / LLM local |
+| IA (Fase 2)     | Interfaz `IAIAgent`; `OllamaAIAgent.ts` skeleton presente, `StubAIAgent` por defecto |
 | Tests           | Planificado: Vitest (unit) + Playwright (E2E) — ver [09 · Roadmap](09-roadmap.md) |
 
 ## Decisiones técnicas y por qué
 
-### TypeScript estricto
+### TypeScript estricto — doble compilación
 
 El proyecto compila con `strict: true` en **dos targets independientes**:
 
 | Config                  | Qué compila                                        | Salida          |
 |-------------------------|----------------------------------------------------|-----------------|
 | `tsconfig.json`         | Renderer + `electron/` + `server/protocol.ts`      | `dist/` (Vite)  |
-| `tsconfig.server.json`  | `server/**/*.ts` (game server)                     | `server-dist/`  |
+| `tsconfig.server.json`  | `server/**/*.ts` (game server completo)            | `server-dist/`  |
 
 El server activa además `noUncheckedIndexedAccess` y `noImplicitOverride`
 para forzar narrowing explícito y dejar los `override` evidentes en los
-modos. El renderer ejecuta `tsc --noEmit` antes de cada build. Esto:
+modos.
 
-- detecta errores de tipo antes de llegar al runtime;
-- documenta los contratos entre capas a nivel de tipos;
-- facilita refactors seguros (renombrado de campos, cambio de firmas);
-- comparte un único contrato WS (`server/protocol.ts`) entre cliente y
-  servidor vía `import type`. Cualquier cambio en el protocolo rompe en
-  compile-time en ambos lados.
+> **Regla clave**: **nunca reintroduzcas `.mjs`** en `server/`. El código
+> del servidor es 100 % TypeScript puro. Esta regla está documentada en
+> [`AGENTS.md §2`](../AGENTS.md), regla 4.
+
+Beneficios:
+- Detecta errores de tipo antes del runtime.
+- Documenta contratos entre capas a nivel de tipos.
+- Facilita refactors seguros.
+- Comparte el contrato WS (`server/protocol.ts`) entre cliente y servidor
+  vía `import type`. Cualquier cambio rompe en compile-time en ambos lados.
 
 ### Vite + vite-plugin-electron
 
@@ -48,7 +53,7 @@ modos. El renderer ejecuta `tsc --noEmit` antes de cada build. Esto:
 - salida del main: `dist-electron/`
 - salida del renderer: `dist/`
 
-### Electron 29
+### Electron 29 — seguridad y preload
 
 Configuración de seguridad:
 
@@ -59,15 +64,27 @@ webPreferences: {
 }
 ```
 
-Esto significa que el renderer **no tiene acceso directo a Node**. Toda la
-lógica del simulador es 100 % cliente, sin necesidad de IPC al main process.
+El renderer no tiene acceso directo a Node. El `electron/preload.js`
+expone únicamente la API necesaria con `contextBridge`:
+
+```js
+contextBridge.exposeInMainWorld('lobbyAPI', {
+  startServer: (port) => ipcRenderer.invoke('lobby:start', port),
+  stopServer:  ()     => ipcRenderer.invoke('lobby:stop'),
+  getStatus:   ()     => ipcRenderer.invoke('lobby:status'),
+  getLanIps:   ()     => ipcRenderer.invoke('lobby:lan-ips'),
+});
+```
+
+`window.lobbyAPI` está tipado en `src/types/index.ts` para que el
+renderer lo use de forma segura.
 
 ### Sin frameworks UI
 
-Decisión pedagógica explícita: HTML/CSS puros. Permite que:
-- los alumnos vean exactamente qué hace cada nodo del DOM;
-- el `BaseView` ejemplifique el patrón Template Method sin magia de framework;
-- la curva de aprendizaje sea baja para sumarse a contribuir.
+Decisión pedagógica explícita: HTML/CSS puros (regla 6 de `AGENTS.md`). Permite:
+- Ver exactamente qué hace cada nodo del DOM.
+- Que `BaseView` ejemplifique el patrón Template Method sin magia de framework.
+- Que la curva de aprendizaje sea baja para contribuidores nuevos.
 
 ### Persistencia en dos niveles
 
@@ -80,9 +97,6 @@ implementación concreta `SessionStorageProvider` añade dos métodos extra:
 | `restore()`        | Restaura `sim:*` de `localStorage` → `sessionStorage` al arrancar   |
 | `hasPersisted()`   | True si existe alguna clave `sim:*` (para confirmar sobrescritura)  |
 
-El comando `save` invoca `persist()` después de pedir un `snapshot()` a
-modelos en memoria.
-
 ### Sistema de eventos (Observer)
 
 `EventBus` es la única vía de comunicación entre capas. Esto desacopla
@@ -90,29 +104,35 @@ totalmente vistas y modelos:
 
 - Una vista nueva sólo se suscribe a los eventos que necesita.
 - Un controlador nuevo emite eventos sin saber quién escucha.
-- En **Fase 3** (multijugador) un `GameServer` puede inyectar un bus
-  alternativo que retransmita eventos por WebSocket sin tocar nada más.
+- En **Fase 3** (multijugador), `LobbyService` traduce mensajes WS a
+  eventos del bus sin que ninguna otra capa sepa que existe WebSocket.
 
 ### electron-builder
 
 `package.json` declara el target Windows NSIS con `appId:
-com.tecnica10.simulador` y separa la salida de `electron-builder` en
-`release/` para no mezclarla con los bundles de Vite (`dist/` y
-`dist-electron/`). `npm run package` genera el instalador `.exe` en esa
-carpeta.
+com.tecnica10.simulador`. `npm run package` genera el instalador `.exe`
+en `release/`.
 
-## Compatibilidad y portabilidad
+`extraResources` copia `server-dist/` y `node_modules/ws` al paquete
+para que Electron pueda forkear el game server sin dependencias externas.
+
+### `@types/ws`
+
+Paquete de tipos necesario para que `server/**/*.ts` compile sin errores
+bajo `tsconfig.server.json`. Solo está en `devDependencies`.
+
+## Compatibilidad
 
 - **Windows 10/11** — soportado oficialmente, con instalador NSIS.
-- **macOS** y **Linux** — funcionan en desarrollo (`npm run dev` y
-  `npm start`); los targets de empaquetado se pueden agregar a
-  `package.json` cuando haga falta.
-- **Offline** — el simulador no requiere conexión a internet. La única
-  dependencia online opcional es el `IAIAgent` real (Fase 2).
+- **macOS** y **Linux** — funcionan en desarrollo (`npm run dev` y `npm start`).
+- **Offline** — no requiere conexión a internet. La única dependencia online
+  opcional es el `IAIAgent` real (Fase 2, interfaz lista).
 
 ## Referencias
 
 - Configuración Vite: [`vite.config.ts`](../vite.config.ts)
 - Entry de Electron: [`electron/main.js`](../electron/main.js)
-- TS strict: [`tsconfig.json`](../tsconfig.json)
+- Preload bridge: [`electron/preload.js`](../electron/preload.js)
+- TS renderer: [`tsconfig.json`](../tsconfig.json)
+- TS server: [`tsconfig.server.json`](../tsconfig.server.json)
 - Build/empaquetado: [`package.json`](../package.json)

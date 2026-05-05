@@ -38,17 +38,19 @@ y se entienda por qué cada pieza está donde está.
 
 ### Reglas de oro
 
-1. **Las vistas no tocan modelos** — reciben datos por `EventBus`.
-2. **Los modelos no tocan el DOM ni `sessionStorage`** — reciben un
-   `IStorageProvider` por constructor.
-3. **Los controladores orquestan**: leen modelos, ejecutan comandos y emiten
-   eventos.
-4. **Los servicios** son piezas reutilizables sin estado de dominio.
-5. **El game server (`server/`)** vive en un proceso Node aparte
-   (forkeado por Electron en `electron/main.js`). Habla WebSocket con
-   `LobbyService`. Comparte `protocol.ts` con el renderer (`import type`)
-   para que cualquier cambio en el contrato rompa en compile-time en
-   ambos lados.
+Las 10 reglas inviolables que **todo contribuidor (humano o IA)** debe respetar
+están documentadas en [`AGENTS.md §2`](../AGENTS.md). Resumen crítico:
+
+1. **Vistas no importan modelos** — solo datos vía `EventBus`.
+2. **Modelos no tocan DOM ni `sessionStorage`** — reciben `IStorageProvider`.
+3. **DOM solo en vistas** (`BaseView` o subclases).
+4. **TypeScript estricto siempre** — nunca `any` implícitos; nunca `.mjs` en `server/`.
+5. **Dispatcher Open/Closed** — nuevo comando = nuevo archivo + registro en `main.ts`.
+6. **Sin frameworks UI** — HTML/CSS puros.
+7. **Offline-first** — sin dependencias de red en runtime (excepto `IAIAgent` opcional).
+8. **Contrato WS único** en `server/protocol.ts` — el renderer importa solo con `import type`.
+9. **Timers sobrevivientes** — capturar referencias locales, `rooms.has()`, `try/catch`.
+10. **Documentación en español** — todo `.md` y strings de UI en español rioplatense neutro.
 
 ## Capas en detalle
 

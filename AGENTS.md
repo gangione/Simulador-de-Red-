@@ -63,6 +63,13 @@ Este documento describe la arquitectura, las reglas de contribución y los punto
    `try/catch`. El servidor instala `process.on('uncaughtException')` y
    `process.on('unhandledRejection')` como red de seguridad — loggean y
    mantienen vivo el proceso, **no** sustituyen al guard.
+10. **Todo en español.** Toda la documentación (`README.md`, `PLAN.md`,
+    `docs/**/*.md`, comentarios JSDoc/TSDoc largos y strings de UI) se
+    escribe en **español rioplatense neutro**. Los nombres de variables,
+    funciones y clases siguen siendo en inglés (convención de código
+    universal). Cualquier excepción requiere justificación pedagógica
+    explícita. Esta regla aplica tanto a humanos como a agentes IA que
+    contribuyan al repositorio.
 
 ### Convenciones de código
 

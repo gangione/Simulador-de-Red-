@@ -13,7 +13,7 @@
 - [x] Persistencia opcional con `save` / `save confirm` en `localStorage`.
 - [x] Stub de IA con interfaz `IAIAgent`.
 
-## Fase 2 — IA pedagógica
+## Fase 2 — IA pedagógica (🟡 En progreso)
 
 Objetivo: que `?teoria <concepto>` y los tips contextuales pasen del stub
 a un agente real, sin tocar nada fuera de `src/services/`.
@@ -71,7 +71,7 @@ en tiempo real, organizados en cuatro modos de juego.
 - [x] Vistas `LobbyView` + `MatchHudView` + servicio `LobbyService` que
       traduce el WS a eventos `lobby:*` del `EventBus`.
 
-## Tests (planeado)
+## Fase 4 — Tests (🔜 planeado)
 
 - [ ] **Vitest** unitarios sobre `NetworkModel`, `MissionModel`,
       `FileSystemModel` y cada `ICommand` con `ctx` mockeado.

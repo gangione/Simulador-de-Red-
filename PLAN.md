@@ -1,29 +1,27 @@
-# PLAN.md
+# PLAN.md — Estado del proyecto
 
-> Este archivo era el plan original de migración del prototipo monolítico
-> (`script.js`) al proyecto MVC actual. **La migración está completa**:
-> Vite + TypeScript + Electron, MVC + SOLID, 18 misiones, 4 tutoriales,
-> sistema multi-misión con foco transferible y persistencia opcional.
+> Este archivo es un **resumen de estado**. El plan original de migración
+> del prototipo monolítico (`script.js`) al proyecto MVC está **completamente
+> ejecutado**. El roadmap vivo y los próximos pasos están en
+> [`docs/09-roadmap.md`](docs/09-roadmap.md).
 
-## Estado actual
+## Estado de fases
 
-- ✅ **Fase 1** — Base completa (MVC + SOLID + 60 nodos + 18 misiones).
-  Detalles en [`docs/01-arquitectura.md`](docs/01-arquitectura.md).
-- ✅ **Fase 3** — Multijugador LAN completo:
-  - `server/gameServer.ts` (WebSocket, fork de Electron, TypeScript estricto).
-  - 4 modos: `red-vs-blue`, `capture`, `coop`, `ffa` extendiendo `BaseMode`.
-  - Reconexión con grace timer de 60 s, cola de aprobación de joins,
-    handshake `team-required` para entrar a partidas en curso.
-  - Contrato compartido `server/protocol.ts` (uniones discriminadas
-    `ClientMsg`/`ServerMsg`) usado por cliente y servidor con `import type`.
-  - Hardening del runtime: `process.on('uncaughtException'/'unhandledRejection')`
-    + regla del *timer sobreviviente* (ver AGENTS.md §2).
-- 🔜 **Fase 2** — IA pedagógica (Ollama / OpenAI tras `IAIAgent`). Pendiente.
+| Fase | Estado | Descripción |
+|------|--------|-------------|
+| **1 — Base** | ✅ Completa | MVC + SOLID + TypeScript strict, 60 nodos, 18 misiones, 4 tutoriales, multi-misión, persistencia, stub IA. |
+| **2 — IA pedagógica** | 🟡 En progreso | `OllamaAIAgent.ts` skeleton presente; `IAIAgent` interfaz lista. Falta: conectar `?teoria`, hints contextuales, fallback offline. |
+| **3 — Multijugador LAN** | ✅ Completa | `GameServer` WebSocket (fork Electron), 4 modos de juego, reconexión 60 s, `protocol.ts` compartido, hardening de runtime. |
+| **4 — Tests** | 🔜 Pendiente | Vitest (unitarios sobre modelos y comandos) + Playwright (E2E sobre bundle de producción). |
 
-El roadmap actualizado vive en [`docs/09-roadmap.md`](docs/09-roadmap.md) y
-las reglas de contribución en [`AGENTS.md`](AGENTS.md).
+## Dónde está cada cosa
 
-## Documentación
-
-Para entender el proyecto, su arquitectura, comandos, misiones y eventos,
-empezá por el índice: [`docs/README.md`](docs/README.md).
+| Recurso | Archivo |
+|---------|--------|
+| Guía de inicio | [`docs/00-quick-start.md`](docs/00-quick-start.md) |
+| Arquitectura MVC + SOLID | [`docs/01-arquitectura.md`](docs/01-arquitectura.md) |
+| Stack técnico completo | [`docs/02-stack-tecnico.md`](docs/02-stack-tecnico.md) |
+| Estructura de archivos | [`docs/03-estructura-proyecto.md`](docs/03-estructura-proyecto.md) |
+| Multijugador LAN (Fase 3) | [`docs/08-multijugador.md`](docs/08-multijugador.md) |
+| Roadmap y próximos pasos | [`docs/09-roadmap.md`](docs/09-roadmap.md) |
+| Reglas inviolables (10) | [`AGENTS.md`](AGENTS.md) |

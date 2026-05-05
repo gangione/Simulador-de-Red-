@@ -34,12 +34,16 @@ node node_modules/electron/install.js
 
 ## 3. Scripts disponibles
 
-| Comando            | Para qué sirve                                                                 |
-|--------------------|--------------------------------------------------------------------------------|
-| `npm run dev`      | Levanta Vite + Electron en modo hot-reload. Ideal para desarrollar.            |
-| `npm run build`    | Type-check con `tsc --noEmit` + bundle de producción a `dist/` y `dist-electron/`. |
-| `npm start`        | Ejecuta la app Electron sobre el bundle de producción.                         |
-| `npm run package`  | Genera el instalador `.exe` con electron-builder (target NSIS).                |
+| Comando               | Para qué sirve                                                                 |
+|-----------------------|--------------------------------------------------------------------------------|
+| `npm run dev`         | Levanta Vite + Electron en modo hot-reload. Ideal para desarrollar.            |
+| `npm run build`       | Type-check renderer + Vite bundle a `dist/` y `dist-electron/`.                |
+| `npm run build:server`| Compila `server/**/*.ts` → `server-dist/` con `tsconfig.server.json`.          |
+| `npm start`           | Ejecuta la app Electron sobre el bundle de producción.                         |
+| `npm run package`     | Genera el instalador `.exe` con electron-builder (target NSIS).                |
+
+> `npm run build` incluye ambos steps (renderer + server). Usá `build:server`
+> solo cuando modifiques exclusivamente código en `server/`.
 
 ## 4. Primer arranque
 
@@ -77,6 +81,35 @@ save confirm   # Sobrescribe la partida anterior.
 
 Al volver a abrir la app, el `MissionModel` y el `UserModel` restauran
 automáticamente lo guardado (rango, tutoriales, misiones activas y enfocada).
+
+## 6. Prueba rápida — partida multijugador LAN
+
+Podés probar el modo multijugador con dos instancias de la app en la misma
+máquina (o dos PCs en la misma red).
+
+**Host (PC 1):**
+```text
+hostear miNombre          # Lanza el servidor local y crea la sala
+```
+
+**Jugador (PC 2):**
+```text
+unirse XXXX 192.168.1.X miAlias   # XXXX = código de sala; IP = la del host
+```
+
+**Dentro del lobby:**
+```text
+equipo red                # Elegir equipo (red / blue / auto)
+listo                     # Marcar como listo
+```
+
+Cuando todos están listos, el host inicia:
+```text
+lobby                     # Abre el panel de lobby si preferís la UI gráfica
+```
+
+> Para más detalles del protocolo, modos de juego y reconexión:
+> [`docs/08-multijugador.md`](08-multijugador.md).
 
 ## 6. Próximos pasos
 
